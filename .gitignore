@@ -218,3 +218,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- Bổ sung cho dbt và bảo mật Service Account Key ---
+target/
+dbt_packages/
+logs/
+.venv/
+*.json
