@@ -1,37 +1,125 @@
-# olist-analytics project
+# Olist-analytics Project
 ---
-## Define grain of each table in the schema
+_End-to-end analytics engineering project: raw Olist e-commerce data → BigQuery → dbt → Power BI._
 
-- `fct_order_items`: Mỗi dòng trong bảng này là **1 sản phẩm trong 1 đơn hàng** (`order_id` + `order_item_id`).
-- `fct_order_payments`: Mỗi dòng là **1 đợt thanh toán của 1 đơn hàng** (`order_id` + `payment_sequential`).
-- `dim_customers`: Mỗi dòng là **1 khách hàng duy nhất** (`customer_id`).
-- `dim_products`: Mỗi dòng là **1 sản phẩm duy nhất** (`product_id`).
-- `dim_sellers`: Mỗi dòng là **1 nhà bán hàng duy nhất** (`seller_id`).
-- `dim_date`: Mỗi dòng là **1 ngày duy nhất trong năm** (`date`).
+![dbt|44](https://img.shields.io/badge/dbt-FF694B?style=for-the-badge&logo=dbt&logoColor=white) ![BigQuery](https://img.shields.io/badge/BigQuery-4285F4?style=for-the-badge&logo=googlebigquery&logoColor=white) ![SQL](https://img.shields.io/badge/SQL-336791?style=for-the-badge&logoColor=white) ![Power BI|87](https://img.shields.io/badge/Power_BI-F2C811?style=for-the-badge&logo=powerbi&logoColor=black) ![Python|102](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white) ![Git|65](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)
 
-## Business Questions & KPIs
-
-1. **Doanh thu tổng theo tháng (Monthly GMV):**
-   * *Định nghĩa KPI:* Tổng giá trị hàng hóa (tổng cột `price` + `freight_value` trong bảng order items) của các đơn hàng có trạng thái là "delivered" (đã giao), tính theo tháng đặt hàng (`order_purchase_timestamp`).
-2. **Số lượng đơn hàng hoàn thành theo thời gian (Completed Orders Volume):** 
-   * *Định nghĩa KPI:* Tổng số lượng `order_id` duy nhất có trạng thái "delivered", nhóm theo tháng/năm đặt hàng.
-3. **Thời gian giao hàng trung bình (Average Delivery Lead Time):** 
-   * *Định nghĩa KPI:* Số ngày trung bình tính từ khi xác nhận thanh toán (`order_approved_at`) đến khi thực tế giao hàng thành công cho khách (`order_delivered_customer_date`), tính trên các đơn đã hoàn thành.
-1. **Giá trị trung bình mỗi đơn hàng (AOV - Average Order Value):** 
-   * *Định nghĩa KPI:* Tổng GMV chia cho tổng số lượng đơn hàng hoàn thành trong cùng khoảng thời gian.
-5. **Top 10 danh mục sản phẩm có doanh thu cao nhất (Top Product Categories by Revenue):**
-   * *Định nghĩa KPI:* Tổng GMV đóng góp bởi từng danh mục sản phẩm (product category name), sắp xếp giảm dần và lấy top 10.
-6. **Tỷ lệ hủy đơn hàng (Order Cancellation Rate):** 
-   * *Định nghĩa KPI:* Tỷ lệ phần trăm giữa số lượng đơn hàng có trạng thái "canceled" chia cho tổng số lượng tất cả các đơn hàng trên hệ thống.
+---
+![hero image]()
 
 
-**Mapping table**
+## 1. Business Problem
+---
+### **Company & Business Model**
 
-| #   | Business question                                           | Fact table      | Dimension(s)                      | Columns used                                                   | KPI formula                                                                                |
-| --- | ----------------------------------------------------------- | --------------- | --------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| 1   | GMV theo tháng thay đổi thế nào?                            | fct_order_items | dim_date, dim_orders_logistics,   | price, freight_value, order_status, order_purchased_timestamp  | SUM(price + freight_value), chỉ tính đơn 'delivered', nhóm theo tháng                      |
-| 2   | Số lượng đơn hàng hoàn thành theo thời gian diễn ra ra sao? | fct_order_items | dim_date,<br>dim_orders_logistics | order_id, order_status                                         | COUNTDISTINCT(order_id), chỉ tính đơn 'delivered'                                          |
-| 3   | Thời gian giao hàng trung bình là bao lâu?                  | fct_order_items | dim_orders_logistics              | order_delivered_customer_date, order_approved_at, order_status | AVG(order_delivered_customer_date - order_approved_at), chỉ tính đơn 'delivered'           |
-| 4   | Giá trị trung bình mỗi đơn hàng đạt mức nào?                | fct_order_items | dim_date                          | price, freight_value, order_id                                 | Tổng GMV chia cho tổng số lượng order_id hoàn thành trong cùng khoảng thời gian.           |
-| 5   | Top 10 những danh mục nào có doanh thu cao nhất?            | fct_order_items | dim_products                      | price, freight_value, product_category_name_eng                | SUM(price + freight_value) nhóm theo danh mục sản phẩm, sắp xếp giảm dần và lấy top 10.    |
-| 6   | Tỷ lệ huỷ đơn hàng chiếm bao nhiêu phần trăm?               | fct_order_items | dim_date, dim_orders_logistics    | order_id, order_status                                         | (Số lượng order_id có trạng thái "canceled" / Tổng số lượng order_id trên hệ thống) * 100. |
+- **Olist:** A B2B2C e-commerce enabler platform in Brazil that empowers small and medium-sized businesses (SMBs) to list and sell their products across major Brazilian marketplaces (such as Mercado Livre, Americanas, and Amazon) under a unified Olist storefront brand.
+	
+- **Revenue Mechanism**: Generates revenue through a take-rate commission on Gross Merchandise Value (GMV), complemented by a fixed monthly subscription fee per active seller.
+
+### **Business Questions**
+
+To evaluate marketplace performance and revenue generation using the Olist dataset, the analytics workflow focuses on the following metric-driven questions:
+
+#### **# Revenue & Order Scale**
+
+- **Q1. Monthly GMV Trend:** How do total Monthly GMV and Completed Orders Volume change over time, and in which specific months do they peak?
+    
+- **Q2. Average Order Value:** What is the monthly trend of Average Order Value (AOV), and how does order value vary across different price tiers?
+
+#### **# Category Performance**
+
+- **Q3. Top Revenue Categories:** What are the Top 10 Product Categories by Revenue, and what exact percentage does each category contribute to the total Revenue?
+
+#### **# Operational Efficiency & Logistics**
+
+- **Q4. Delivery Lead Time:** What is the Average Delivery Lead Time (in days) from order approved to customer delivery, and how does it vary by state?
+    
+- **Q5. On-time Delivery Rate:** What is the monthly On-time Delivery Rate (percentage of orders delivered on and before the estimated delivery date), and among late orders, how many days late are they on average?
+
+#### **# Order Risk & Reliability**
+
+- **Q6. Order Cancellation Rate:** What is the monthly order cancellation rate, and which product categories have the highest cancellation rate (categories with at least N orders)?
+
+#### **# Customer Satisfaction**
+
+- **Q7. Review Score Distribution:** What is the average review score per month, and what exact percentage of total orders fall into each rating tier (from 1 to 5 stars)?
+
+
+## 2. Key insights
+---
+
+*Coming in next phases*
+*(đây là phần làm nổi bật tư duy phân tích dữ liệu)*
+
+
+## 3. Architecture
+---
+
+*Coming in next phases:*
+- [ ] *Sơ đồ luồng dữ liệu: Kaggle CSV → load script → BigQuery `raw` → dbt (staging → intermediate → marts) → Power BI*
+- [ ] *Bảng tech stack: tool | dùng để làm gì*
+
+
+## 4. Data Model
+
+![hero image](docs/images/ERD.png)
+
+The warehouse follows a **galaxy schema**: three fact tables at different grains share conformed dimensions (`dim_customers`, `dim_products`, `dim_sellers`, `dim_date`).
+
+- `fct_orders`: one row per order (status, delivery, review)
+- `fct_order_items`: one row per item in an order (price, freight)
+- `fct_order_payments`: one row per payment of an order
+
+Keeping each fact at its natural grain avoids double-counting when an order has multiple items or payments.
+
+*💡 **Detailed Documentation:** For a comprehensive breakdown of the schema design, table relationships, and field dictionaries, please refer to the [Data Model Documentation](docs/data_model.md).*
+
+
+## 5. dbt Project
+---
+
+*Coming in next phases*
+
+
+
+## 6. Repository structure
+---
+
+```
+olist-analytics/                  <-- Root workspace
+├── .git/                         <-- Git management
+├── .venv/                        <-- Python virtual environment
+├── .gitignore                    <-- Files/folders to ignore
+├── README.md                     <-- 📌 README (shows in the Github homepage)
+├── docs/                         <-- Contains design documents & Schema diagrams
+└── olist_analytics/              <-- The folder containing dbt project
+    ├── dbt_project.yml           <-- Overall dbt configuration
+    ├── models/                   
+    │   ├── staging/              
+    │   │   ├── stg_customers.sql 
+    │   │   └── schema.yml        <-- 📌 dbt schema.yml files are located here
+    │   └── marts/                
+    ├── analyses/
+    ├── tests/
+    └── macros/
+```
+
+
+## 7. How to run
+---
+
+*Coming in next phases*
+*(người khác làm theo phải chạy được dự án)*
+
+
+## 8. What I learned / Next steps
+---
+
+*Coming in next phases*
+
+
+## 9. Contact
+---
+
+*Add LinkedIn & Email*
+
