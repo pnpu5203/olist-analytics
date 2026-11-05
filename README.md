@@ -2,10 +2,10 @@
 ---
 _End-to-end analytics engineering project: raw Olist e-commerce data → BigQuery → dbt → Power BI._
 
-![dbt|44](https://img.shields.io/badge/dbt-FF694B?style=for-the-badge&logo=dbt&logoColor=white) ![BigQuery](https://img.shields.io/badge/BigQuery-4285F4?style=for-the-badge&logo=googlebigquery&logoColor=white) ![SQL](https://img.shields.io/badge/SQL-336791?style=for-the-badge&logoColor=white) ![Power BI|87](https://img.shields.io/badge/Power_BI-F2C811?style=for-the-badge&logo=powerbi&logoColor=black) ![Python|102](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white) ![Git|65](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)
+![dbt|44](https://img.shields.io/badge/dbt-FF694B?style=for-the-badge&logo=dbt&logoColor=white) ![BigQuery](https://img.shields.io/badge/BigQuery-4285F4?style=for-the-badge&logo=googlebigquery&logoColor=white) ![SQL](https://img.shields.io/badge/SQL-336791?style=for-the-badge&logoColor=white) ![Power BI|87](https://img.shields.io/badge/Power_BI-F2C811?style=for-the-badge&logo=powerbi&logoColor=black) ![Python|102](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white) ![Git|64](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)
 
 ---
-![hero image]()
+*hero image for the Dashboard coming in next phases*
 
 
 ## 1. Business Problem
@@ -14,7 +14,7 @@ _End-to-end analytics engineering project: raw Olist e-commerce data → BigQuer
 
 - **Olist:** A B2B2C e-commerce enabler platform in Brazil that empowers small and medium-sized businesses (SMBs) to list and sell their products across major Brazilian marketplaces (such as Mercado Livre, Americanas, and Amazon) under a unified Olist storefront brand.
 	
-- **Revenue Mechanism**: Generates revenue through a take-rate commission on Gross Merchandise Value (GMV), complemented by a fixed monthly subscription fee per active seller.
+- **Revenue Mechanism**: Typically generates revenue through a take-rate commission on Gross Merchandise Value (GMV), complemented by a fixed monthly subscription fee per active seller.
 
 ### **Business Questions**
 
@@ -49,15 +49,15 @@ To evaluate marketplace performance and revenue generation using the Olist datas
 ---
 
 *Coming in next phases*
-*(đây là phần làm nổi bật tư duy phân tích dữ liệu)*
+*(This section highlights the data analysis approach)*
 
 
 ## 3. Architecture
 ---
 
 *Coming in next phases:*
-- [ ] *Sơ đồ luồng dữ liệu: Kaggle CSV → load script → BigQuery `raw` → dbt (staging → intermediate → marts) → Power BI*
-- [ ] *Bảng tech stack: tool | dùng để làm gì*
+- [ ] *Data flow diagram: Kaggle CSV → load script → BigQuery `raw` → dbt (staging → intermediate → marts) → Power BI*
+- [ ] *Tech Stack Table: Tools | What are they used for?*
 
 
 ## 4. Data Model
@@ -87,8 +87,6 @@ Keeping each fact at its natural grain avoids double-counting when an order has 
 
 ```
 olist-analytics/                  <-- Root workspace
-├── .git/                         <-- Git management
-├── .venv/                        <-- Python virtual environment
 ├── .gitignore                    <-- Files/folders to ignore
 ├── README.md                     <-- 📌 README (shows in the Github homepage)
 ├── docs/                         <-- Contains design documents & Schema diagrams
@@ -109,7 +107,7 @@ olist-analytics/                  <-- Root workspace
 ---
 
 *Coming in next phases*
-*(người khác làm theo phải chạy được dự án)*
+*(Others who follow the directions must be able to get the project running)*
 
 
 ## 8. What I learned / Next steps
