@@ -18,7 +18,89 @@
 ## 2. Entity Relationship Diagram (ERD)
 ---
 
-![ERD](images/ERD.png)
+```mermaid
+erDiagram
+    dim_customers ||--o{ fct_orders : "customer_unique_id"
+    dim_customers ||--o{ fct_order_items : "customer_unique_id"
+    dim_customers ||--o{ fct_order_payments : "customer_unique_id"
+    dim_date      ||--o{ fct_orders : "order_date"
+    dim_date      ||--o{ fct_order_items : "order_date"
+    dim_date      ||--o{ fct_order_payments : "order_date"
+	dim_sellers   ||--o{ fct_order_items : "seller_id"
+	dim_products  ||--o{ fct_order_items : "product_id"
+
+    fct_orders {
+        string    order_id PK
+        string    customer_unique_id FK
+        date      order_date FK
+        string    order_status
+        int       delivery_days
+        numeric   order_value
+        int       item_count
+        bool      is_delivered
+        bool      is_canceled
+        float     review_score
+        timestamp order_purchase_timestamp
+        timestamp order_approved_at
+        timestamp order_delivered_carrier_date
+        timestamp order_delivered_customer_date
+        timestamp order_estimated_delivery_date
+    }
+    fct_order_items {
+        string    order_id PK
+        int       order_item_id PK
+        string    customer_unique_id FK
+        date      order_date FK
+        string    order_status
+        string    product_id FK
+        string    seller_id FK
+        numeric   price
+        numeric   freight_value
+    }
+    fct_order_payments {
+        string    order_id PK
+        integer   payment_sequential PK
+        string    customer_unique_id FK
+        date      order_date FK
+        string    payment_type
+        integer   payment_installments
+        numeric   payment_value
+    }
+    dim_customers {
+        string customer_unique_id PK
+        string customer_zip_code_prefix 
+        string customer_city
+        string customer_state
+    }
+    dim_sellers {
+        string seller_id PK
+        string seller_zip_code_prefix 
+        string seller_city
+        string seller_state
+    }
+    dim_products {
+        string product_id PK
+        string product_category_name 
+        string product_category_name_eng
+        int    product_name_length
+        int    product_description_length
+        int    product_photo_qty
+        float  product_weight_g
+        float  product_length_cm
+        float  product_height_cm
+        float  product_width_cm
+    }
+    dim_date {
+        date   date PK
+        string day_name
+        int    month
+        string month_name
+        int    year
+        date   year_month
+        string quarter
+        bool is_weekend
+    }
+```
 
 ### **Fact Tables**
 ---
@@ -37,7 +119,7 @@
 | `delivery_days` | `integer` | `DATE_DIFF(order_delivered_customer_date, order_approved_at, DAY)`, `NULL` if not delivered | the two timestamp columns in `olist_orders_dataset`                   |
 | `item_count`    | `integer` | `COUNT(order_item_id)`, within the same `order_id`                                          | `order_item_id` column in `olist_order_items_dataset`                 |
 | `order_value`   | `numeric` | `SUM(price + freight_value)` of all the items with the same `order_id`                      | two column `price` and `freight_value` in `olist_order_items_dataset` |
-| `review_score`  | `integer` | `AVG(review_score)`                                                                         | `review_score` column in `olist_order_reviews_dataset`                |
+| `review_score`  | `float`   | `AVG(review_score)`                                                                         | `review_score` column in `olist_order_reviews_dataset`                |
 | `is_delivered`  | `boolean` | TRUE if `order_status` is 'delivered' else FALSE                                            | `order_status` column in `olist_orders_dataset`                       |
 | `is_canceled`   | `boolean` | TRUE if `order_status` is 'canceled' else FALSE                                             | `order_status` column in `olist_orders_dataset`                       |
 
@@ -118,26 +200,28 @@
 | Q5a | What is the monthly On-time Delivery Rate?                                | fct_orders      | dim_date      | order_id, order_status, order_estimated_delivery_date, order_delivered_customer_date | `(COUNT(order_id where DATE(order_delivered_customer_date) <= DATE(order_estimated_delivery_date)) / COUNT(*)) * 100`<br><br>*(only 'delivered' orders are counted, grouped by month)*                  |
 | Q5b | Average days late                                                         | fct_orders      | dim_date      | order_id, order_status, order_estimated_delivery_date, order_delivered_customer_date | `AVG(number of days late)`<br><br>*(calculated only on delayed orders)*                                                                                                                                 |
 | Q6a | What is the monthly order cancellation rate?                              | fct_orders      | dim_date      | order_id, order_status, order_date                                                   | `(COUNT(order_id) where order_status = 'canceled' / COUNT(order_id)) * 100`<br><br>*(grouped by month)*                                                                                                 |
-| Q6b | Categories have the highest cancellation rate, with at least min N orders | fct_order_items | dim_products  | order_id, order_status, order_date, product_category_name_eng                        | Use the median value (`50th percentile`) or the `75th percentile` of the total number of orders in each category as the benchmark `N`.                                                                  |
+| Q6b | Categories have the highest cancellation rate, with at least min N orders | fct_order_items | dim_products  | order_id, order_status, order_date, product_category_name_eng                        | Use the median value (`50th percentile` of the total number of orders) in each category as the benchmark `N`.                                                                                           |
 | Q7a | What is the average review score per month?                               | fct_orders      | dim_date      | order_status, review_score, order_date                                               | `AVG(review_score)`<br><br>*(only 'delivered' orders are counted, grouped by month)*                                                                                                                    |
 | Q7b | % per rating tier                                                         | fct_orders      | dim_date      | order_status, review_score, order_date                                               | `COUNT by review_score / total number of orders`<br><br>*(only 'delivered' orders are counted, grouped by month)*                                                                                       |
 
 ## 4. Assumptions & decisions
 ---
 
->[!TIP]- What is the rule for **eliminating duplicate customer data**?
->
+> [!NOTE]
+> What is the rule for **eliminating duplicate customer data**?
+> 
 > - **Problem encountered:** In Olist original dataset, each unique `order_id` generates a new `customer_id`, so the same `customer_unique_id`, with different order, is repeated across multiple lines. Therefore, when removing the `customer_id` field from the original dataset `olist_orders_dataset` and `olist_customers_dataset`, the records in the new `dim_customers` table will be duplicated, because the PK of the original `olist_customers_dataset` dataset is `customer_id`.
 > 
 > - **Solution:** Only keep the `customer_unique_id` and related customer information (`customer_zip_code_prefix`, `customer_city`, `customer_state`) from the most recent order.
 
->[!TIP]- Why is **GMV** (Gross Merchandise Value) **included in freight** charges?
->
->- GMV is defined as `SUM(price + freight_value)`: the total amount buyers pay for an order through the platform.
->
->- This makes GMV reconcilable with `fct_order_payments.payment_value`, so the two fact tables can be cross-checked for data quality. Small differences (e.g. vouchers) are expected and investigated in the processs.
->
->- Note that: category-level revenue (Q3) uses `price` only, since `freight` is not attributable to a product category.
+> [!NOTE]
+> Why is **GMV** (Gross Merchandise Value) **included in freight** charges?
+> 
+> - GMV is defined as `SUM(price + freight_value)`: the total amount buyers pay for an order through the platform.
+> 
+> - This makes GMV reconcilable with `fct_order_payments.payment_value`, so the two fact tables can be cross-checked for data quality. Small differences (e.g. vouchers) are expected and investigated in the process.
+> 
+> - Note that: category-level revenue (Q3) uses `price` only, since `freight` is not attributable to a product category.
 
 
 
