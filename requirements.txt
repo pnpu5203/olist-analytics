@@ -1,2 +1,4 @@
 dbt-core==1.12.6
 dbt-bigquery==1.12.2
+kaggle==2.2.5
+python-dotenv==1.2.4
