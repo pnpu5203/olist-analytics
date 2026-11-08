@@ -1,6 +1,9 @@
 import sys
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv() # reading KAGGLE_USERNAME and KAGGLE_KEY from the .env file
 
 DATASET_NAME = "olistbr/brazilian-ecommerce"  # Dataset Olist on Kaggle
 
@@ -29,8 +32,7 @@ def download_kaggle_dataset(dataset_name=DATASET_NAME):
     existing_files = {f.name for f in RAW_DIR.iterdir() if f.is_file()}
     missing_files = EXPECTED_FILES - existing_files
     if not missing_files:
-        print(f"The '{RAW_DIR}' folder already contains all 9 required CSV files.")
-        print("Skip the download step!")
+        print(f"The '{RAW_DIR}' folder already contains all 9 required CSV files. Skip the download step!")
         return
 
     # check Kaggle credentials in os.environ before importing and authenticating.
@@ -44,7 +46,6 @@ def download_kaggle_dataset(dataset_name=DATASET_NAME):
     try:
         # Lazy Import:
         from kaggle.api.kaggle_api_extended import KaggleApi
-        
         api = KaggleApi()
         api.authenticate()
     except Exception as e:
