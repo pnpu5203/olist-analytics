@@ -35,7 +35,7 @@ def download_kaggle_dataset(dataset_name=DATASET_NAME):
         print(f"The '{RAW_DIR}' folder already contains all 9 required CSV files. Skip the download step!")
         return
 
-    # check Kaggle credentials in os.environ before importing and authenticating.
+    # check Kaggle credentials in os.environ before importing and authenticating
     required_vars = ["KAGGLE_USERNAME", "KAGGLE_KEY"]
     missing_env = [var for var in required_vars if not os.environ.get(var)]
     if missing_env:
